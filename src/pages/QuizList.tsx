@@ -111,7 +111,7 @@ export function QuizListPage() {
         <div className="relative min-w-[240px] flex-1">
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
-            placeholder="Search by quiz ID or customer email…"
+            placeholder="Search by quiz ID, result link ID, or email…"
             className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -230,7 +230,7 @@ export function QuizListPage() {
             <EmptyState
               icon={SearchX}
               title="No submissions found"
-              description="Try a different quiz ID, email, or widen the date range."
+              description="Try a different quiz ID, a result link ID, an email, or widen the date range."
             />
           )}
         </CardContent>

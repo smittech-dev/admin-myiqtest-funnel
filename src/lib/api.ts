@@ -1,6 +1,5 @@
 // One function per admin endpoint. Pages call these and nothing else.
 
-import { endOfDay, startOfDay } from 'date-fns';
 import { clearToken, request, setToken } from '@/lib/http';
 import type {
   AdminUser,
@@ -37,14 +36,21 @@ export interface QuizListParams extends DateRangeParams {
 }
 
 /**
- * Sends the picked days as full ISO timestamps covering the operator's local
- * day. The backend accepts either a bare date or an ISO instant; sending the
- * instant means "Today" means today where the operator is, not in UTC.
+ * Sends the range as full ISO instants, exactly as picked.
+ *
+ * Deliberately *not* widened to day boundaries here any more: the picker now
+ * carries a time, and forcing start/end of day would quietly throw it away —
+ * an operator who asked for 09:00–12:00 would get the whole day and no
+ * indication why. Whole-day ranges still work because the picker defaults the
+ * times to 00:00 and 23:59.
+ *
+ * The instant is the operator's local one, so "Today" means today where they
+ * are rather than in UTC. The backend accepts either form.
  */
 function rangeQuery(params: DateRangeParams): Record<string, string | undefined> {
   return {
-    from: params.from ? startOfDay(params.from).toISOString() : undefined,
-    to: params.to ? endOfDay(params.to).toISOString() : undefined
+    from: params.from ? params.from.toISOString() : undefined,
+    to: params.to ? params.to.toISOString() : undefined
   };
 }
 
