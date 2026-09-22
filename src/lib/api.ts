@@ -3,6 +3,10 @@
 import { clearToken, request, setToken } from '@/lib/http';
 import type {
   AdminUser,
+  ContactInquiry,
+  ContactInquiryList,
+  ContactStatus,
+  ContactTopic,
   DashboardStats,
   EmailMarketingConfigResponse,
   EmailMarketingLogItem,
@@ -184,4 +188,50 @@ export async function sendTestEmail(input: {
       }
     }
   );
+}
+
+// --- contact inquiries ---------------------------------------------------
+
+export interface ContactListParams extends DateRangeParams {
+  /** Matched against the name, the address and the message body. */
+  search?: string;
+  status?: ContactStatus | 'all';
+  topic?: ContactTopic | 'all';
+  page?: number;
+  pageSize?: number;
+}
+
+export async function fetchContactInquiries(
+  params: ContactListParams = {}
+): Promise<ContactInquiryList> {
+  const { search, status = 'all', topic = 'all', page = 1, pageSize = 20 } = params;
+
+  return request<ContactInquiryList>('/admin/contact-inquiries', {
+    query: {
+      ...rangeQuery(params),
+      search: search?.trim() || undefined,
+      status,
+      topic,
+      page,
+      page_size: pageSize
+    }
+  });
+}
+
+/** Marks one inquiry opened or unopened. The only field that can change. */
+export async function setContactInquiryStatus(
+  id: string,
+  status: ContactStatus
+): Promise<ContactInquiry> {
+  return request<ContactInquiry>(`/admin/contact-inquiries/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: { status }
+  });
+}
+
+/** Permanent — for clearing out spam. */
+export async function deleteContactInquiry(id: string): Promise<void> {
+  await request<null>(`/admin/contact-inquiries/${encodeURIComponent(id)}`, {
+    method: 'DELETE'
+  });
 }

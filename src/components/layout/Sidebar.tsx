@@ -1,12 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import { BrainCircuit, LayoutDashboard, ListChecks, Mails, X } from 'lucide-react';
+import { BrainCircuit, Inbox, LayoutDashboard, ListChecks, Mails, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/quiz', label: 'Quiz', icon: ListChecks },
-  { to: '/email-marketing', label: 'Email Marketing', icon: Mails }
+  { to: '/email-marketing', label: 'Email Marketing', icon: Mails },
+  { to: '/contact', label: 'Contact', icon: Inbox }
 ];
 
 interface SidebarProps {

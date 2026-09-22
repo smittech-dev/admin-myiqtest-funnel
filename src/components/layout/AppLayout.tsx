@@ -9,6 +9,7 @@ function pageTitle(pathname: string): string {
   if (pathname.startsWith('/quiz/')) return 'Quiz Submission Detail';
   if (pathname.startsWith('/quiz')) return 'Quiz Submissions';
   if (pathname.startsWith('/email-marketing')) return 'Email Marketing';
+  if (pathname.startsWith('/contact')) return 'Contact Inquiries';
   return 'Dashboard';
 }
 

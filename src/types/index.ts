@@ -251,3 +251,35 @@ export interface EmailMarketingRunResult {
   nothing_due: number;
   duration_ms: number;
 }
+
+// --- contact inquiries ---------------------------------------------------
+
+export type ContactTopic = 'billing' | 'results' | 'technical' | 'press' | 'other';
+export type ContactStatus = 'new' | 'read';
+
+/** One submission of the funnel's contact form. */
+export interface ContactInquiry {
+  id: string;
+  name: string;
+  email: string;
+  topic: ContactTopic;
+  message: string;
+  language: Language;
+  status: ContactStatus;
+  ip_address: string | null;
+  /** When the admin notification left. Null means it never did. */
+  notified_at: string | null;
+  /** Why it did not, when it did not. */
+  notify_error: string | null;
+  created_at: string;
+}
+
+/**
+ * A page of inquiries, plus the unread count.
+ *
+ * `unread` is counted across the whole table rather than through the current
+ * filter, so the number means the same thing on every view.
+ */
+export interface ContactInquiryList extends PaginatedResult<ContactInquiry> {
+  unread: number;
+}

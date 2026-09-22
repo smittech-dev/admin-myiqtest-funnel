@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { AuthProvider } from '@/context/AuthProvider';
 import { useAuth } from '@/context/auth-context';
+import { ContactInquiriesPage } from '@/pages/ContactInquiries';
 import { DashboardPage } from '@/pages/Dashboard';
 import { EmailMarketingPage } from '@/pages/EmailMarketing';
 import { LoginPage } from '@/pages/Login';
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/quiz" element={<QuizListPage />} />
           <Route path="/email-marketing" element={<EmailMarketingPage />} />
+          <Route path="/contact" element={<ContactInquiriesPage />} />
           <Route path="/quiz/:id" element={<QuizDetailPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
