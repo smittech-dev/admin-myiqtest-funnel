@@ -166,7 +166,10 @@ export function DashboardPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <SubscriptionStatusBadge status={row.subscription_status} />
+                            <SubscriptionStatusBadge
+                              status={row.subscription_status}
+                              cancelAt={row.subscription_cancel_at}
+                            />
                           </TableCell>
                           <TableCell className="text-right tabular-nums">
                             {formatMoney(row.revenue, currencyOf(row.language))}

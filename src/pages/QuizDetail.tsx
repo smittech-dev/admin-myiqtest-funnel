@@ -23,7 +23,7 @@ import {
 import { fetchQuizDetail } from '@/lib/api';
 import { ApiError } from '@/lib/http';
 import { currencyOf, formatDateTime, formatDuration, formatMoney, titleCase } from '@/lib/format';
-import type { QuizSubmissionDetail } from '@/types';
+import type { QuizSubmissionDetail, Subscription } from '@/types';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -46,6 +46,41 @@ function ScoreBar({ label, score }: { label: string; score: number }) {
       </div>
     </div>
   );
+}
+
+/**
+ * Where the subscription stands on cancelling: ended, ending, or neither.
+ *
+ * "Ending" is the case that matters most to read correctly. Stripe keeps the
+ * status `trialing` or `active` until the scheduled date, so this cell is where
+ * a member who has cancelled shows up as having done so.
+ */
+function CancellationSummary({ sub }: { sub: Subscription }) {
+  const reason = sub.cancel_reason ? titleCase(sub.cancel_reason) : null;
+
+  if (sub.canceled_at) {
+    return (
+      <div className="space-y-0.5">
+        <p className="text-foreground">Ended {formatDateTime(sub.canceled_at)}</p>
+        {reason && <p className="text-xs">{reason}</p>}
+      </div>
+    );
+  }
+
+  if (sub.scheduled_cancel_at) {
+    return (
+      <div className="space-y-0.5">
+        <p className="text-foreground">Ends {formatDateTime(sub.scheduled_cancel_at)}</p>
+        <p className="text-xs">
+          {sub.cancel_requested_at ? 'Requested ' + formatDateTime(sub.cancel_requested_at) : null}
+          {sub.cancel_requested_at && reason ? ' · ' : null}
+          {reason}
+        </p>
+      </div>
+    );
+  }
+
+  return <>—</>;
 }
 
 export function QuizDetailPage() {
@@ -324,7 +359,7 @@ export function QuizDetailPage() {
                   <TableHead>Status</TableHead>
                   <TableHead>Current Period</TableHead>
                   <TableHead>Stripe Subscription</TableHead>
-                  <TableHead>Canceled</TableHead>
+                  <TableHead>Cancellation</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -335,7 +370,10 @@ export function QuizDetailPage() {
                       {formatMoney(sub.amount, sub.currency)}
                     </TableCell>
                     <TableCell>
-                      <SubscriptionStatusBadge status={sub.status} />
+                      <SubscriptionStatusBadge
+                        status={sub.status}
+                        cancelAt={sub.scheduled_cancel_at}
+                      />
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {formatDateTime(sub.current_period_start)} &rarr;{' '}
@@ -345,10 +383,7 @@ export function QuizDetailPage() {
                       <code className="text-xs">{sub.stripe_subscription_id}</code>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {sub.canceled_at
-                        ? formatDateTime(sub.canceled_at) +
-                          (sub.cancel_reason ? ' (' + titleCase(sub.cancel_reason) + ')' : '')
-                        : '—'}
+                      <CancellationSummary sub={sub} />
                     </TableCell>
                   </TableRow>
                 ))}

@@ -3,7 +3,16 @@
 
 export type TransactionType = 'first_sale' | 'cross_sale' | 'subscription' | 'refund';
 export type TransactionStatus = 'pending' | 'succeeded' | 'failed' | 'refunded';
-export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'incomplete';
+/** Every status Stripe reports, stored as-is by the webhook. */
+export type SubscriptionStatus =
+  | 'trialing'
+  | 'active'
+  | 'past_due'
+  | 'unpaid'
+  | 'paused'
+  | 'incomplete'
+  | 'incomplete_expired'
+  | 'canceled';
 export type Currency = 'JPY' | 'GBP';
 export type Language = 'ja' | 'en';
 
@@ -61,9 +70,22 @@ export interface Subscription {
   currency: Currency;
   current_period_start: string | null;
   current_period_end: string | null;
+  /** When it actually ended. Null while a cancellation is only scheduled. */
   canceled_at: string | null;
+  cancel_at_period_end: boolean;
+  /** Stripe's `cancel_at` — when a scheduled cancellation takes effect. */
+  cancel_at: string | null;
+  /** When the cancellation was requested. */
+  cancel_requested_at: string | null;
+  /**
+   * When a pending cancellation takes effect, however it was made; null when
+   * the plan renews or has already ended. Stripe keeps a cancelled plan
+   * `trialing` or `active` until this date, so `status` alone cannot say it.
+   */
+  scheduled_cancel_at: string | null;
   cancel_reason: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 /**
@@ -91,6 +113,8 @@ export interface QuizSubmissionListItem {
   first_sale_amount: string | null;
   cross_sale_amount: string | null;
   subscription_status: SubscriptionStatus | null;
+  /** When a scheduled cancellation takes effect; null if it renews or has ended. */
+  subscription_cancel_at: string | null;
 }
 
 /** The full customer_quiz_results row, from the detail endpoint. */
