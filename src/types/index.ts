@@ -183,6 +183,8 @@ export interface EmailTemplateOption {
   subject: { ja: string; en: string };
   /** True when ZeptoMail renders the design, not this repo. */
   hosted_in_zeptomail: boolean;
+  /** True when a step using this design cannot be saved with "No discount". */
+  requires_discount: boolean;
 }
 
 export interface DiscountCodeOption {

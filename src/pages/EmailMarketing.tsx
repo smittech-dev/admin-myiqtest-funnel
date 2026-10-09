@@ -414,10 +414,9 @@ export function EmailMarketingPage() {
                     {settings.steps.map((step) => {
                       const template = templates.find((t) => t.id === step.template_id);
                       const stepStats = stats?.by_step[step.key];
-                      // Mirrors the server's rule: a design that prints the
-                      // discount cannot be sent without a code, or the customer
-                      // reads "% off" with no offer behind it.
-                      const needsDiscount = template?.params.includes('discount_percent') ?? false;
+                      // The server's rule, sent with the template: a design with
+                      // no copy for going out without a discount needs a code.
+                      const needsDiscount = template?.requires_discount ?? false;
 
                       return (
                         <TableRow key={step.key}>
