@@ -88,6 +88,27 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
   return url.toString();
 }
 
+/**
+ * The message to show for a failed request.
+ *
+ * A 400 from the backend says only "Validation failed"; the reason is in
+ * `details` as `[{ field, message }]`. Showing the bare headline leaves the
+ * operator guessing which field the server objected to, so the per-field
+ * messages are appended.
+ */
+function describeFailure(envelope: ApiEnvelope<unknown> | null, status: number): string {
+  const headline = envelope?.error?.message ?? `Request failed with status ${status}`;
+  const details = envelope?.error?.details;
+
+  if (!Array.isArray(details)) return headline;
+
+  const reasons = details
+    .map((d) => (d && typeof d.message === 'string' ? d.message : null))
+    .filter((m): m is string => Boolean(m));
+
+  return reasons.length ? `${headline}: ${reasons.join(' ')}` : headline;
+}
+
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { method = 'GET', body, query, skipAuthRedirect = false } = options;
 
@@ -123,7 +144,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       unauthorizedHandler?.();
     }
     throw new ApiError(
-      envelope?.error?.message ?? `Request failed with status ${response.status}`,
+      describeFailure(envelope, response.status),
       response.status,
       envelope?.error?.details
     );

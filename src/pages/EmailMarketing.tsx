@@ -414,6 +414,10 @@ export function EmailMarketingPage() {
                     {settings.steps.map((step) => {
                       const template = templates.find((t) => t.id === step.template_id);
                       const stepStats = stats?.by_step[step.key];
+                      // Mirrors the server's rule: a design that prints the
+                      // discount cannot be sent without a code, or the customer
+                      // reads "% off" with no offer behind it.
+                      const needsDiscount = template?.params.includes('discount_percent') ?? false;
 
                       return (
                         <TableRow key={step.key}>
@@ -466,7 +470,9 @@ export function EmailMarketingPage() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="none">No discount</SelectItem>
+                                <SelectItem value="none" disabled={needsDiscount}>
+                                  No discount
+                                </SelectItem>
                                 {codes.map((code) => (
                                   <SelectItem key={code.code} value={code.code}>
                                     {code.discount}% — {code.code}
@@ -474,6 +480,11 @@ export function EmailMarketingPage() {
                                 ))}
                               </SelectContent>
                             </Select>
+                            {needsDiscount && step.enabled && !step.discount_code && (
+                              <p className="text-destructive mt-1 text-xs">
+                                This template shows the discount — pick a code
+                              </p>
+                            )}
                           </TableCell>
 
                           <TableCell>
