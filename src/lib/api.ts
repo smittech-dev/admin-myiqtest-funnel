@@ -169,22 +169,23 @@ export async function runEmailMarketing(): Promise<EmailMarketingRunResult> {
   return request<EmailMarketingRunResult>('/admin/email-marketing/run', { method: 'POST' });
 }
 
-/** Sends one design to an address with sample data. Records no send history. */
+/**
+ * Sends one saved step — its template, with its discount code — to an address
+ * with a sample customer. Records no send history.
+ */
 export async function sendTestEmail(input: {
-  templateId: string;
+  stepKey: string;
   to: string;
   language: 'ja' | 'en';
-  discountCode?: string;
 }): Promise<{ subject: string; message_id: string | null }> {
   return request<{ subject: string; message_id: string | null }>(
     '/admin/email-marketing/test-send',
     {
       method: 'POST',
       body: {
-        template_id: input.templateId,
+        step_key: input.stepKey,
         to: input.to.trim(),
-        language: input.language,
-        ...(input.discountCode ? { discount_code: input.discountCode } : {})
+        language: input.language
       }
     }
   );

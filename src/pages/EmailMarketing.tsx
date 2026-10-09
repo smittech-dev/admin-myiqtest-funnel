@@ -64,6 +64,31 @@ function describeDelay(hours: number): string {
   return (Number.isInteger(days) ? days : days.toFixed(1)) + ' days after the quiz';
 }
 
+/**
+ * A design as the step picker names it: its place in the list and the English
+ * subject this step would actually send — with the step's own percent in it,
+ * or the no-discount subject when it has none. The design's internal name
+ * ("Day 1 — … (20% off)") stops being true the moment a different code is
+ * picked.
+ *
+ * The name slot reads "there", as it does for a customer with no name on file.
+ */
+function templateLabel(
+  template: EmailTemplateOption,
+  position: number,
+  percent: number | null
+): string {
+  const subject =
+    percent === null ? template.subject_without_discount.en : template.subject.en;
+
+  const filled = subject
+    .replace(/\{\{\s*discount_percent\s*\}\}/g, String(percent))
+    .replace(/\{\{\s*honorific_name\s*\}\}/g, 'there')
+    .replace(/\{\{\s*\w+\s*\}\}/g, '…');
+
+  return 'Template ' + position + ' - ' + filled;
+}
+
 function statusBadge(status: EmailMarketingLogStatus) {
   switch (status) {
     case 'sent':
@@ -106,7 +131,7 @@ export function EmailMarketingPage() {
   // --- actions -----------------------------------------------------------
   const [running, setRunning] = useState(false);
   const [testTo, setTestTo] = useState('');
-  const [testTemplate, setTestTemplate] = useState('');
+  const [testStep, setTestStep] = useState('');
   const [testLanguage, setTestLanguage] = useState<'ja' | 'en'>('ja');
   const [testing, setTesting] = useState(false);
 
@@ -127,7 +152,12 @@ export function EmailMarketingPage() {
         setTransport(data.transport);
         setStats(data.stats);
         setDirty(false);
-        setTestTemplate((current) => current || data.templates[0]?.id || '');
+        // Keep the step being tested across a reload, unless it was removed.
+        setTestStep((current) =>
+          data.settings.steps.some((s) => s.key === current)
+            ? current
+            : (data.settings.steps[0]?.key ?? '')
+        );
       })
       .catch((err: unknown) => {
         if (!active) return;
@@ -178,10 +208,20 @@ export function EmailMarketingPage() {
   }, []);
 
 // A step runs the discount ladder, so only marketing designs belong in its
-  // picker. The test-send box below deliberately offers everything.
+  // picker.
   const marketingTemplates = useMemo(
     () => templates.filter((t) => t.category === 'marketing'),
     [templates]
+  );
+
+  /**
+   * A step's discount as a percent, or null for "No discount". A code missing
+   * from the list resolves to none, exactly as it does when the email is
+   * rendered.
+   */
+  const percentOf = useCallback(
+    (code: string) => codes.find((c) => c.code === code.toUpperCase())?.discount ?? null,
+    [codes]
   );
 
   /**
@@ -298,18 +338,17 @@ export function EmailMarketingPage() {
   }
 
   async function handleTestSend() {
-    if (!testTo.trim() || !testTemplate) return;
+    // The server tests the saved step, so unsaved edits would silently not be
+    // what arrives. The button is disabled while dirty; this is the backstop.
+    if (!testTo.trim() || !testStep || dirty) return;
     setTesting(true);
     setNotice(null);
 
     try {
       const result = await sendTestEmail({
-        templateId: testTemplate,
+        stepKey: testStep,
         to: testTo,
-        language: testLanguage,
-        // The step's own code is not implied here — the test previews a design,
-        // and a design is used by more than one step.
-        discountCode: codes.find((c) => c.discount === 20)?.code ?? codes[0]?.code
+        language: testLanguage
       });
       setNotice({ kind: 'ok', text: 'Test sent to ' + testTo + ' — "' + result.subject + '"' });
     } catch (err: unknown) {
@@ -327,6 +366,12 @@ export function EmailMarketingPage() {
     [settings]
   );
 
+  // What the test box will send: the chosen step's template and code.
+  const testStepConfig = settings?.steps.find((s) => s.key === testStep) ?? null;
+  const testTemplateIndex = testStepConfig
+    ? marketingTemplates.findIndex((t) => t.id === testStepConfig.template_id)
+    : -1;
+  const testPercent = testStepConfig ? percentOf(testStepConfig.discount_code) : null;
 
   if (error) {
     return <ErrorState message={error} onRetry={retry} />;
@@ -405,7 +450,7 @@ export function EmailMarketingPage() {
                       <TableHead className="min-w-[180px]">Step</TableHead>
                       <TableHead className="w-[150px]">Send after</TableHead>
                       <TableHead className="w-[190px]">Discount code</TableHead>
-                      <TableHead className="min-w-[230px]">Email template</TableHead>
+                      <TableHead className="min-w-[340px]">Email template</TableHead>
                       <TableHead className="w-[110px] text-right">Sent</TableHead>
                       <TableHead className="w-0" />
                     </TableRow>
@@ -417,6 +462,7 @@ export function EmailMarketingPage() {
                       // The server's rule, sent with the template: a design with
                       // no copy for going out without a discount needs a code.
                       const needsDiscount = template?.requires_discount ?? false;
+                      const percent = percentOf(step.discount_code);
 
                       return (
                         <TableRow key={step.key}>
@@ -491,13 +537,13 @@ export function EmailMarketingPage() {
                               value={step.template_id}
                               onValueChange={(v) => updateStep(step.key, { template_id: v })}
                             >
-                              <SelectTrigger className="h-9 w-full">
+                              <SelectTrigger className="h-9 w-full [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:truncate">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                {marketingTemplates.map((t) => (
+                                {marketingTemplates.map((t, index) => (
                                   <SelectItem key={t.id} value={t.id}>
-                                    {t.name}
+                                    {templateLabel(t, index + 1, percent)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -616,9 +662,9 @@ export function EmailMarketingPage() {
         <CardHeader>
           <CardTitle>Send a test</CardTitle>
           <CardDescription>
-            Delivers any template — marketing or transactional — to your own inbox with sample
-            data. It records no history, so nobody loses their place in the sequence and no
-            customer's credentials are touched.
+            Sends one step of the sequence to your own inbox exactly as a customer would get
+            it — that step's template, with its discount code — addressed to a sample customer.
+            It records no history, so nobody loses their place in the sequence.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -635,16 +681,16 @@ export function EmailMarketingPage() {
             </div>
 
             <div className="min-w-[240px] flex-1 space-y-1.5">
-              <Label>Template</Label>
-              <Select value={testTemplate} onValueChange={setTestTemplate}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Pick a template" />
+              <Label>Checkout sequence step</Label>
+              <Select value={testStep} onValueChange={setTestStep}>
+                <SelectTrigger className="w-full [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:truncate">
+                  <SelectValue placeholder="Pick a step" />
                 </SelectTrigger>
                 <SelectContent>
-                  {templates.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.category === 'transactional' ? '✉ ' : '◷ '}
-                      {t.name}
+                  {(settings?.steps ?? []).map((s) => (
+                    <SelectItem key={s.key} value={s.key}>
+                      {s.label} · {describeDelay(s.delay_hours)}
+                      {s.enabled ? '' : ' (off)'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -667,11 +713,40 @@ export function EmailMarketingPage() {
               </Select>
             </div>
 
-            <Button onClick={handleTestSend} disabled={testing || !testTo.trim() || !testTemplate}>
+            <Button
+              onClick={handleTestSend}
+              disabled={testing || dirty || !testTo.trim() || !testStep}
+            >
               {testing ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               Send test
             </Button>
           </div>
+
+          {dirty ? (
+            <p className="text-destructive mt-3 text-sm">
+              Save your changes first — the test sends the step as saved.
+            </p>
+          ) : (
+            testStepConfig && (
+              <p className="text-muted-foreground mt-3 text-sm">
+                Sends{' '}
+                {testTemplateIndex >= 0
+                  ? templateLabel(
+                      marketingTemplates[testTemplateIndex],
+                      testTemplateIndex + 1,
+                      testPercent
+                    )
+                  : testStepConfig.template_id}
+                {' · '}
+                {!testStepConfig.discount_code
+                  ? 'No discount'
+                  : testPercent !== null
+                    ? testStepConfig.discount_code.toUpperCase() + ' — ' + testPercent + '% off'
+                    : testStepConfig.discount_code.toUpperCase() +
+                      ' (not a known code — sent without a discount)'}
+              </p>
+            )
+          )}
         </CardContent>
       </Card>
 

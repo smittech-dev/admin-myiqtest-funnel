@@ -181,6 +181,8 @@ export interface EmailTemplateOption {
   category: EmailTemplateCategory;
   params: string[];
   subject: { ja: string; en: string };
+  /** The subject sent when the step has no discount code. */
+  subject_without_discount: { ja: string; en: string };
   /** True when ZeptoMail renders the design, not this repo. */
   hosted_in_zeptomail: boolean;
   /** True when a step using this design cannot be saved with "No discount". */

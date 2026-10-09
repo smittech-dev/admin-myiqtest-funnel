@@ -53,9 +53,10 @@ Sign in with that **email** and password.
   edit each step's delay, discount code and email template, and set the batch
   size, retry limit and the "ignore quizzes older than" guard. Also shows
   per-step send counts, recent activity with failure reasons, a **Run now**
-  button, and a **Send a test** box that delivers a design to your own inbox
-  without writing a tracking row — so a test never consumes anyone's place in
-  the sequence.
+  button, and a **Send a test** box that delivers one step of the saved
+  sequence — its template, with its discount code — to your own inbox without
+  writing a tracking row, so a test never consumes anyone's place in the
+  sequence.
 
   Everything on this page is stored in the `email_marketing_settings` and
   `email_marketing_steps` tables and saved as one transaction, so a save that
@@ -63,12 +64,14 @@ Sign in with that **email** and password.
   Removing a step keeps its send history; a step's key is fixed once created,
   because renaming it would orphan that history and send the rung again.
 
-  **Send a test** covers the transactional emails too — the welcome with its
-  brain-training credentials, and the report-ready notice — not just the
-  marketing ladder. Those two are triggered by the funnel itself (a settled
-  first sale, and the customer saving their details) and so have nothing to
-  configure here, but previewing them is the same one-click job. The step
-  picker stays marketing-only, since a step runs the discount ladder.
+  **Send a test** picks a step, not a template, because what needs checking is
+  what a rung actually sends: the same design goes out with 20% on one step
+  and no discount on another, and those are different emails. The test reads
+  the *saved* sequence, so it is disabled while there are unsaved edits. A
+  disabled step can still be tested — that is how it gets checked before it
+  is switched on. The transactional emails (the welcome, the report-ready
+  notice) have no step, and are reviewed with `npm run send:test-emails` in
+  the backend.
 
   The page loads its dropdowns from the same response as the settings, so it can
   only ever offer a template or discount code the backend will accept. A banner
