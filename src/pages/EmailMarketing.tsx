@@ -68,7 +68,7 @@ function describeDelay(hours: number): string {
  * A design as the step picker names it: its place in the list and the English
  * subject this step would actually send — with the step's own percent in it,
  * or the no-discount subject when it has none. The design's internal name
- * ("Day 1 — … (20% off)") stops being true the moment a different code is
+ * ("Template 3 — … Get 20% off …") stops being true the moment a different code is
  * picked.
  *
  * The name slot reads "there", as it does for a customer with no name on file.
