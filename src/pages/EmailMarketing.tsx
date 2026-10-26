@@ -72,6 +72,9 @@ function describeDelay(hours: number): string {
  * picked.
  *
  * The name slot reads "there", as it does for a customer with no name on file.
+ * A design that can only send with a discount reads "…% off" on a step with
+ * none, rather than "null% off" — it cannot be saved there until a code is
+ * picked.
  */
 function templateLabel(
   template: EmailTemplateOption,
@@ -82,7 +85,7 @@ function templateLabel(
     percent === null ? template.subject_without_discount.en : template.subject.en;
 
   const filled = subject
-    .replace(/\{\{\s*discount_percent\s*\}\}/g, String(percent))
+    .replace(/\{\{\s*discount_percent\s*\}\}/g, percent === null ? '…' : String(percent))
     .replace(/\{\{\s*honorific_name\s*\}\}/g, 'there')
     .replace(/\{\{\s*\w+\s*\}\}/g, '…');
 
